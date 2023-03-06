@@ -13,20 +13,21 @@ type AllApiMessage =
 
 export class NonBotApi {
     static builder(envConfig: EnvInterface): NonBotApi {
-        const {API_ID, API_HASH, TG_SESSION} = envConfig;
-        return new NonBotApi(API_ID, API_HASH, TG_SESSION);
+        const {API_ID, API_HASH, TG_SESSION, CHANNEL_ID} = envConfig;
+        return new NonBotApi(API_ID, API_HASH, TG_SESSION, CHANNEL_ID);
     }
 
-    private readonly CHANNEL_ID = "-1001834776253";
     private readonly stringSession: StringSession;
     private readonly clientParams = {connectionRetries: 5};
     private readonly hash = BigInt("-4156887774564");
     private client: TelegramClient | undefined;
+    private isAuthorized = false;
 
     constructor(
         private readonly API_ID: number,
         private readonly API_HASH: string,
         private readonly TG_SESSION: string,
+        private readonly CHANNEL_ID: string
     ) {
         this.stringSession = new StringSession(this.TG_SESSION);
     }
@@ -34,9 +35,9 @@ export class NonBotApi {
     async authorize(): Promise<boolean> {
         this.client = new TelegramClient(this.stringSession, this.API_ID, this.API_HASH, this.clientParams);
         await this.client.connect();
-        const isAuthorized = await this.client.checkAuthorization();
+        this.isAuthorized = await this.client.checkAuthorization();
 
-        if (!isAuthorized) {
+        if (!this.isAuthorized) {
             console.log("I am NOT logged in!");
             return Promise.resolve(false);
         }
@@ -46,17 +47,22 @@ export class NonBotApi {
     }
 
     async getPostCount(): Promise<number> {
-        const apiCall = () => new Api.messages.GetScheduledHistory({
-            // @ts-ignore
-            peer: this.CHANNEL_ID, hash: this.hash
-        });
-        const result = await this.wrapApi(apiCall);
+        if (!this.isAuthorized) {
+            await this.authorize();
+        }
+
+        const result = await this.wrapApi(this._getScheduledHistory);
 
         const count = (result as unknown as Api.messages.ChannelMessages)?.count || 0;
         console.log('scheduled posts count', count);
 
         return count;
     }
+
+    private _getScheduledHistory = () => new Api.messages.GetScheduledHistory({
+            // @ts-ignore
+            peer: this.CHANNEL_ID, hash: this.hash
+        });
 
     private async wrapApi<T extends AllApiMessage, K extends AnyRequest>(apiCall: () => K): Promise<K> {
         if (TypeGuardsHelper.isUndefined(this.client)) {

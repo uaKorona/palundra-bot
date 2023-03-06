@@ -4,7 +4,9 @@ const {
     PRODUCTION,
     PALUNDRA_BOT_TOKEN, TEST_BOT_TOKEN,
     API_ID, API_HASH,
-    TG_SESSION
+    TG_SESSION,
+    ADMIN_CHAT_ID, TEST_CHAT_ID,
+    CHANNEL_ID
 } = process.env as Record<string, string>;
 
 export const ENV_CONFIG: EnvInterface = {
@@ -12,7 +14,9 @@ export const ENV_CONFIG: EnvInterface = {
     BOT_TOKEN: PRODUCTION ? PALUNDRA_BOT_TOKEN: TEST_BOT_TOKEN,
     API_ID: parseInt(API_ID, 10),
     API_HASH,
-    TG_SESSION
+    TG_SESSION,
+    ADMIN_CHAT_ID: PRODUCTION ? ADMIN_CHAT_ID: TEST_CHAT_ID,
+    CHANNEL_ID
 }
 
 const emptyPops = Object
